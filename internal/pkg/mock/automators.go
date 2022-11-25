@@ -1,6 +1,9 @@
 package mock
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 type CacherStore struct {
 	Cache           map[string]string
@@ -8,7 +11,7 @@ type CacherStore struct {
 	WantDeleteError bool
 }
 
-func (c *CacherStore) InsertData(key, data string) error {
+func (c *CacherStore) InsertData(ctx context.Context, key, data string) error {
 	if c.WantInsertError {
 		return fmt.Errorf("insert error")
 	}
@@ -16,7 +19,7 @@ func (c *CacherStore) InsertData(key, data string) error {
 	return nil
 }
 
-func (c *CacherStore) GetData(key string) (string, error) {
+func (c *CacherStore) GetData(ctx context.Context, key string) (string, error) {
 	data, ok := c.Cache[key]
 	if !ok {
 		return "", fmt.Errorf("data not found")
@@ -24,7 +27,7 @@ func (c *CacherStore) GetData(key string) (string, error) {
 	return data, nil
 }
 
-func (c *CacherStore) DeleteData(key string) error {
+func (c *CacherStore) DeleteData(ctx context.Context, key string) error {
 	if c.WantDeleteError {
 		return fmt.Errorf("delete error")
 	}

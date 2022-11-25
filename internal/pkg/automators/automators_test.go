@@ -13,9 +13,10 @@ import (
 
 	"github.com/go-co-op/gocron"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
+
 	"github.com/jboakyedonkor/ping-app/internal/pkg/automators"
 	"github.com/jboakyedonkor/ping-app/internal/pkg/mock"
-	"go.uber.org/zap"
 )
 
 func TestDecryptJobInfo(t *testing.T) {
