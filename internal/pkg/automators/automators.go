@@ -22,9 +22,9 @@ type Automator struct {
 }
 
 type Cacher interface {
-	InsertData(key, data string) error
-	GetData(key string) (string, error)
-	DeleteData(key string) error
+	InsertData(ctx context.Context, key, data string) error
+	GetData(ctx context.Context, key string) (string, error)
+	DeleteData(ctx context.Context, key string) error
 }
 
 func NewAutomator(cache Cacher, secretKey []byte, scheduler *gocron.Scheduler, logger *zap.SugaredLogger) *Automator {
@@ -73,7 +73,7 @@ func (a *Automator) CreateNewJob(ctx context.Context, cronExpression string, tas
 		return "", err
 	}
 
-	if err := a.cache.InsertData(jobConfig.UID.String(), encryptedJob); err != nil {
+	if err := a.cache.InsertData(ctx, jobConfig.UID.String(), encryptedJob); err != nil {
 		if err := a.scheduler.RemoveByTag(jobConfig.UID.String()); err != nil {
 
 			logger.Errorf("error deleting job after error insert job config into cache: %w", err)
@@ -96,7 +96,7 @@ func (a *Automator) DeleteJob(ctx context.Context, jobUID uuid.UUID) error {
 		return err
 	}
 
-	if err := a.cache.DeleteData(jobUID.String()); err != nil {
+	if err := a.cache.DeleteData(ctx, jobUID.String()); err != nil {
 		err := fmt.Errorf("error removing job config cache: %w", err)
 		logger.Error(err)
 		return err
