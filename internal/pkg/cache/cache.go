@@ -40,13 +40,14 @@ func (c *Cache) GetData(ctx context.Context, key string) (string, error) {
 	logger := c.logger.With("context", ctx)
 	result, err := c.redisClient.Get(ctx, key).Result()
 	if err == redis.Nil {
-		logger.Error(&NotFoundError{})
-		return "", &NotFoundError{}
+		e := &NotFoundError{}
+		logger.Error(e.Error())
+		return "", e
 	}
 
 	if err != nil {
 		err := fmt.Errorf("error retrieving data from redis: %w", err)
-		logger.Error(err)
+		logger.Error(err.Error())
 		return "", err
 	}
 	logger.Debugw("retrieved data from redis cache", "data", result)
@@ -56,7 +57,7 @@ func (c *Cache) DeleteData(ctx context.Context, key string) error {
 	_, err := c.redisClient.Del(ctx, key).Result()
 	if err != nil {
 		err := fmt.Errorf("error deleting data from redis: %w", err)
-		c.logger.With("context", ctx).Error(err)
+		c.logger.With("context", ctx).Error(err.Error())
 		return err
 	}
 	c.logger.With("context", ctx).Debugf("successful deleted %q from cache", key)
