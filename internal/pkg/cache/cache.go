@@ -59,6 +59,6 @@ func (c *Cache) DeleteData(ctx context.Context, key string) error {
 		c.logger.With("context", ctx).Error(err)
 		return err
 	}
-
+	c.logger.With("context", ctx).Debugf("successful deleted %q from cache", key)
 	return nil
 }

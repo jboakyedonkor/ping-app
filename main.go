@@ -38,6 +38,12 @@ func main() {
 	jobRoute := routes.NewJobRoute(logger, automator)
 	app := gin.Default()
 
+	app.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "up",
+		})
+	})
+
 	jobGroup := app.Group("/jobs")
 	jobGroup.DELETE("/:id", jobRoute.DeleteJob)
 	jobGroup.GET("/:id", jobRoute.GetJob)
