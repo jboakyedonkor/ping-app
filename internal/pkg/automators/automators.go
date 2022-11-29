@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-co-op/gocron"
 	"github.com/google/uuid"
+	"github.com/jboakyedonkor/ping-app/internal/pkg/cache"
 	"go.uber.org/zap"
 )
 
@@ -36,16 +37,12 @@ func NewAutomator(cache Cacher, secretKey []byte, scheduler *gocron.Scheduler, l
 	}
 }
 
-func (a *Automator) CreateNewJob(ctx context.Context, cronExpression string, task *Task) (string, error) {
+func (a *Automator) CreateNewJob(ctx context.Context, config JobConfig) (string, error) {
 	logger := a.logger.With("context", ctx)
 	UUID := uuid.New()
 
-	jobConfig := JobConfig{
-		CronExpression: cronExpression,
-		UID:            UUID,
-		Task:           *task,
-	}
-	bytes, err := json.Marshal(jobConfig)
+	config.UID = UUID
+	bytes, err := json.Marshal(config)
 	if err != nil {
 		return "", fmt.Errorf("error marshalling job config: %w", err)
 	}
@@ -59,7 +56,7 @@ func (a *Automator) CreateNewJob(ctx context.Context, cronExpression string, tas
 		return "", err
 	}
 
-	jobFunc, err := createJobFunc(jobConfig)
+	jobFunc, err := createJobFunc(config)
 	if err != nil {
 		err := fmt.Errorf("error creating job function: %w", err)
 		logger.Error(err)
@@ -67,14 +64,14 @@ func (a *Automator) CreateNewJob(ctx context.Context, cronExpression string, tas
 
 	}
 
-	if _, err := a.scheduler.Cron(cronExpression).Tag(jobConfig.UID.String()).Do(jobFunc); err != nil {
+	if _, err := a.scheduler.Cron(config.CronExpression).Tag(config.UID.String()).Do(jobFunc); err != nil {
 		err := fmt.Errorf("error scheduling job: %w", err)
 		logger.Error(err)
 		return "", err
 	}
 
-	if err := a.cache.InsertData(ctx, jobConfig.UID.String(), encryptedJob); err != nil {
-		if err := a.scheduler.RemoveByTag(jobConfig.UID.String()); err != nil {
+	if err := a.cache.InsertData(ctx, config.UID.String(), encryptedJob); err != nil {
+		if err := a.scheduler.RemoveByTag(config.UID.String()); err != nil {
 
 			logger.Errorf("error deleting job after error insert job config into cache: %w", err)
 			return "", fmt.Errorf("error removing job: %w", err)
@@ -83,8 +80,8 @@ func (a *Automator) CreateNewJob(ctx context.Context, cronExpression string, tas
 		return "", fmt.Errorf("error inserting new job into cache: %w", err)
 	}
 
-	logger.Debugw("created new job", "jobUID", jobConfig.UID.String())
-	return jobConfig.UID.String(), nil
+	logger.Debugw("created new job", "jobUID", config.UID.String())
+	return config.UID.String(), nil
 }
 
 func (a *Automator) DeleteJob(ctx context.Context, jobUID uuid.UUID) error {
@@ -102,6 +99,28 @@ func (a *Automator) DeleteJob(ctx context.Context, jobUID uuid.UUID) error {
 		return err
 	}
 	return nil
+}
+
+func (a *Automator) GetJob(ctx context.Context, jobUID uuid.UUID) (*JobConfig, error) {
+	logger := a.logger.With("context", ctx)
+	data, err := a.cache.GetData(ctx, jobUID.String())
+	if err != nil {
+		if _, ok := err.(*cache.NotFoundError); ok {
+			return nil, err
+		}
+		err := fmt.Errorf("error retrieving job data: %w", err)
+		logger.Error(err)
+		return nil, err
+	}
+
+	config, err := DecryptJobInfo(a.secretKey, data)
+	if err != nil {
+		err := fmt.Errorf("error decrypting job data: %w", err)
+		logger.Error(err)
+		return nil, err
+	}
+
+	return config, nil
 }
 
 func createJobFunc(config JobConfig) (func() (any, error), error) {

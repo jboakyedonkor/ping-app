@@ -13,6 +13,12 @@ type Cache struct {
 	logger      *zap.SugaredLogger
 }
 
+type NotFoundError struct{}
+
+func (c *NotFoundError) Error() string {
+	return "data not found in cache"
+}
+
 func NewCache(client *redis.Client, logger *zap.SugaredLogger) *Cache {
 	return &Cache{
 		redisClient: client,
@@ -31,13 +37,19 @@ func (c *Cache) InsertData(ctx context.Context, key, data string) error {
 	return nil
 }
 func (c *Cache) GetData(ctx context.Context, key string) (string, error) {
+	logger := c.logger.With("context", ctx)
 	result, err := c.redisClient.Get(ctx, key).Result()
-	if err != nil {
-		err := fmt.Errorf("error retrieving data from redis: %w", err)
-		c.logger.With("context", ctx).Error(err)
-		return "", err
+	if err == redis.Nil {
+		logger.Error(&NotFoundError{})
+		return "", &NotFoundError{}
 	}
 
+	if err != nil {
+		err := fmt.Errorf("error retrieving data from redis: %w", err)
+		logger.Error(err)
+		return "", err
+	}
+	logger.Debugw("retrieved data from redis cache", "data", result)
 	return result, nil
 }
 func (c *Cache) DeleteData(ctx context.Context, key string) error {
