@@ -10,6 +10,7 @@ import (
 	"github.com/go-co-op/gocron"
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/jboakyedonkor/ping-app/internal/pkg/automators"
 	"github.com/jboakyedonkor/ping-app/internal/pkg/cache"
@@ -46,7 +47,8 @@ func main() {
 
 	jobGroup := app.Group("/jobs")
 	jobGroup.DELETE("/:id", jobRoute.DeleteJob)
-	jobGroup.GET("/:id", jobRoute.GetJob)
+	jobGroup.GET("/:id/config", jobRoute.GetJobConfig)
+	jobGroup.GET("", jobRoute.GetJobs)
 	jobGroup.POST("", jobRoute.CreateJob)
 
 	scheduler.StartAsync()
@@ -54,6 +56,8 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+	go automator.ReconcileJobs()
+
 	logger.Infof("listening on port %s", port)
 	app.Run(fmt.Sprintf(":%s", port))
 }
@@ -67,8 +71,9 @@ func getLogger(config envConfig) *zap.SugaredLogger {
 		}
 		return logger.Sugar()
 	}
-
-	logger, err := zap.NewProduction()
+	loggerConfig := zap.NewProductionConfig()
+	loggerConfig.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	logger, err := loggerConfig.Build()
 	if err != nil {
 		panic(err)
 	}

@@ -196,7 +196,9 @@ func TestAutomator_CreateNewJob(t *testing.T) {
 			name: "sucess new job",
 			fields: fields{
 				cache: &mock.CacherStore{
-					Cache: make(map[string]string),
+					Cache:    make(map[string]string),
+					CacheSet: make(map[string]struct{}),
+					SetName:  "jobs_set",
 				},
 				secretKey: []byte("kHQXeA!12mR56<OVDC0G7ZNEi(WiecmZ"),
 				scheduler: gocron.NewScheduler(time.Local),
@@ -204,7 +206,7 @@ func TestAutomator_CreateNewJob(t *testing.T) {
 			},
 			args: args{
 				config: &automators.JobConfig{
-					CronExpression: "* * * * *",
+					CronExpression: "* * * * * *",
 					Task: automators.Task{
 						URL:     "http:/127.0.0.1/ping",
 						Timeout: time.Minute,
@@ -247,7 +249,7 @@ func TestAutomator_CreateNewJob(t *testing.T) {
 			},
 			args: args{
 				config: &automators.JobConfig{
-					CronExpression: "* * * * *",
+					CronExpression: "* * * * * *",
 					Task: automators.Task{
 						URL:     "http:/127.0.0.1/ping",
 						Timeout: time.Minute,
@@ -312,6 +314,7 @@ func TestAutomator_DeleteJob(t *testing.T) {
 					Cache: map[string]string{
 						"a8c14eb0-0fba-4b75-a461-e4d380317ab7": "job-config",
 					},
+					SetName: "jobs_set",
 				},
 				scheduler: gocron.NewScheduler(time.Local),
 				logger:    zap.NewExample().Sugar(),

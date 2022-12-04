@@ -32,7 +32,7 @@ func (j *JobRoute) CreateJob(c *gin.Context) {
 	c.JSON(http.StatusCreated, GenericResponse{UID: uid})
 }
 
-func (j *JobRoute) GetJob(c *gin.Context) {
+func (j *JobRoute) GetJobConfig(c *gin.Context) {
 	id, ok := c.Params.Get("id")
 	if !ok {
 		c.JSON(http.StatusBadRequest, "no job uid specificed")
@@ -82,4 +82,16 @@ func NewJobRoute(logger *zap.SugaredLogger, jobAutomator *automators.Automator) 
 		logger:       logger,
 		jobAutomator: jobAutomator,
 	}
+}
+
+func (j *JobRoute) GetJobs(c *gin.Context) {
+	ctx := c.Request.Context()
+	configs, err := j.jobAutomator.GetRunningJobs(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, GenericResponse{Message: "internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, configs)
+
 }
