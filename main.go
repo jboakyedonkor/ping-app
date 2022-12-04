@@ -37,7 +37,14 @@ func main() {
 	automator := automators.NewAutomator(redisCache, []byte(config.secretKey), scheduler, logger)
 
 	jobRoute := routes.NewJobRoute(logger, automator)
-	app := gin.Default()
+	app := gin.New()
+
+	app.Use(func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		duration := time.Since(start)
+		logger.Infow(c.Request.Method, "path", c.Request.URL.Path, "source_ip", c.Request.RemoteAddr, "duration_ms", duration.Milliseconds())
+	})
 
 	app.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{

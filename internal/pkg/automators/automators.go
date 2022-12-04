@@ -39,6 +39,10 @@ type Cacher interface {
 
 type jobFunc func(config *JobConfig, logger *zap.SugaredLogger) (any, error)
 
+const (
+	reconcileTickerDuration = 10 * time.Second
+)
+
 func NewAutomator(cache Cacher, secretKey []byte, scheduler *gocron.Scheduler, logger *zap.SugaredLogger) *Automator {
 	return &Automator{
 		cache:      cache,
@@ -144,9 +148,10 @@ func (a *Automator) ReconcileJobs() {
 
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(reconcileTickerDuration)
 
-	for {
+	isUp := true
+	for isUp {
 		select {
 
 		case <-ticker.C:
@@ -156,13 +161,14 @@ func (a *Automator) ReconcileJobs() {
 		case <-quit:
 			ticker.Stop()
 			a.scheduler.Stop()
-			close(quit)
+			signal.Stop(quit)
 			a.logger.Info("ticker and scheduler stopped")
-			a.logger.Desugar().Sync()
-			break
+			isUp = false
 		}
 	}
 
+	a.logger.Info("reconciling of jobs stopped")
+	os.Exit(0)
 }
 
 func (a *Automator) reconcileJobs() {
