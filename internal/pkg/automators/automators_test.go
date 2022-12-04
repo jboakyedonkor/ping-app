@@ -182,9 +182,7 @@ func TestAutomator_CreateNewJob(t *testing.T) {
 		logger    *zap.SugaredLogger
 	}
 	type args struct {
-		cronExpression string
-		task           *automators.Task
-		config         *automators.JobConfig
+		config *automators.JobConfig
 	}
 	tests := []struct {
 		name    string

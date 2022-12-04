@@ -161,14 +161,12 @@ func (a *Automator) ReconcileJobs() {
 		case <-quit:
 			ticker.Stop()
 			a.scheduler.Stop()
-			signal.Stop(quit)
 			a.logger.Info("ticker and scheduler stopped")
 			isUp = false
 		}
 	}
 
 	a.logger.Info("reconciling of jobs stopped")
-	os.Exit(0)
 }
 
 func (a *Automator) reconcileJobs() {

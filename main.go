@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -66,7 +69,26 @@ func main() {
 	go automator.ReconcileJobs()
 
 	logger.Infof("listening on port %s", port)
-	app.Run(fmt.Sprintf(":%s", port))
+	addr := fmt.Sprintf(":%s", port)
+	srv := http.Server{
+		Addr:    addr,
+		Handler: app,
+	}
+
+	go func() {
+		err := srv.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			logger.Fatalf("server error : %s", err)
+		}
+	}()
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	if err := srv.Shutdown(context.Background()); err != nil {
+		logger.Fatalf("error shutting down server: %s", err)
+	}
+	logger.Info("shutting down server")
+
 }
 
 func getLogger(config envConfig) *zap.SugaredLogger {
