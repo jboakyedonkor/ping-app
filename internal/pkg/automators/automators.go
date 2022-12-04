@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -270,9 +271,9 @@ func templateJobFunc(config *JobConfig, joblogger *zap.SugaredLogger) (any, erro
 			return nil, err
 		}
 		auth = fmt.Sprintf("%s %s", scheme, config.Task.AuthHeader.Parameters)
+		request.Header.Add("Authorization", auth)
 	}
 
-	request.Header.Add("Authorization", auth)
 	response, err := client.Do(request)
 	if err != nil {
 		err := fmt.Errorf("error making request: %w", err)
@@ -283,7 +284,7 @@ func templateJobFunc(config *JobConfig, joblogger *zap.SugaredLogger) (any, erro
 
 	var r any
 
-	if response.Body != nil && response.Header.Get("Content-Type") == "application/json" {
+	if response.Body != nil && strings.Contains(response.Header.Get("Content-Type"), "application/json") {
 		err = json.NewDecoder(response.Body).Decode(&r)
 		if err != nil {
 			err := fmt.Errorf("error decoding response: %w", err)

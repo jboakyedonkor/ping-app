@@ -31,3 +31,14 @@ func Map[T any, U any](arr []T, mapFunc func(T) U) []U {
 
 	return mapArr
 }
+
+func Contains[T any](arr []T, validateFunc func(T) bool) bool {
+
+	for i := range arr {
+		if validateFunc(arr[i]) {
+			return true
+		}
+	}
+
+	return false
+}
