@@ -7,19 +7,19 @@ import (
 )
 
 type JobConfig struct {
-	CronExpression string
-	UID            uuid.UUID
-	Task           Task
+	CronExpression string    `json:"cron_expression,omitempty"`
+	UID            uuid.UUID `json:"uid,omitempty"`
+	Task           Task      `json:"task,omitempty"`
 }
 
 type Task struct {
-	URL              string
-	Timeout          time.Duration
-	AuthHeader       AuthHeader
-	ExpectedResponse any
+	URL              string        `json:"url"`
+	Timeout          time.Duration `json:"task,omitempty"`
+	AuthHeader       AuthHeader    `json:"auth_header,omitempty"`
+	ExpectedResponse any           `json:"expected_response,omitempty"`
 }
 
 type AuthHeader struct {
-	Scheme     string
-	Parameters string
+	Scheme     string `json:"scheme,omitempty"`
+	Parameters string `json:"parameters,omitempty"`
 }

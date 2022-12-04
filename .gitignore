@@ -16,5 +16,6 @@
 
 #local-dev
 *.log
-vscode
+.vscode
 .env
+*bin

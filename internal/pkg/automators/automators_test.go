@@ -37,7 +37,7 @@ func TestDecryptJobInfo(t *testing.T) {
 			name: "sucess decrypt case",
 			args: args{
 				key:           []byte("kHQXeA!12mR56<OVDC0G7ZNEi(WiecmZ"),
-				encryptedData: "0000000000000000000000005410f9c086ddc1a997daaf3936bdae20f7410df80935a4b8214f4eddae495b21d6e96a947951562d390c3289823732c5556823a5298fe64ca578350d6f751f3463d00e4e2f8e4906d6e32deedb1d686829fe1dad2e6a7e382069015b0505f8829083d875cc8bc07c887b07b9b1e227a2910b7a342070540d80d8455100cf13f9eaadc537a4ee06a59668d114c03a3ac5a5f2c75871d238f6f4f60cf1653cbd602c250ce0911478ce46cbeaa48482b33c92b99049b3247672af91e171ac9c1157b4b760881b5b42e0422a5b0cf4d66f48d16e16ffad8b73e240b82ce0f2f2cc5199607b8bf5e829044786fea1",
+				encryptedData: "0000000000000000000000005410d9c086dddbb49fd8b82f36a7a821bb5915f0033fa1a6304544d7a443532fd89e56b93f494e6e6057608cd33060d8483e27a66596b019a76079586d72037c32805945278d4b0080e078fbd5131e7d3be654b56f33091f1e2719434f19f886da96d82edd9dc726c96612f1eefb20abd40574423d7c4209d796515b06cf13f9eaadc537a4f214e8c15dcc3fc0173ec0a4e59740308b69c6fffb04f92224a5000b211ff7864476c014faf9b7888aa22d85b8c151ab726764a8c8b86aa8921a1bebb731f2da8d0e0d99d013996ef020e2566da8",
 			},
 			want: &automators.JobConfig{
 				CronExpression: "* */1 * * *",
@@ -182,8 +182,7 @@ func TestAutomator_CreateNewJob(t *testing.T) {
 		logger    *zap.SugaredLogger
 	}
 	type args struct {
-		cronExpression string
-		task           *automators.Task
+		config *automators.JobConfig
 	}
 	tests := []struct {
 		name    string
@@ -195,17 +194,21 @@ func TestAutomator_CreateNewJob(t *testing.T) {
 			name: "sucess new job",
 			fields: fields{
 				cache: &mock.CacherStore{
-					Cache: make(map[string]string),
+					Cache:    make(map[string]string),
+					CacheSet: make(map[string]struct{}),
+					SetName:  "jobs_set",
 				},
 				secretKey: []byte("kHQXeA!12mR56<OVDC0G7ZNEi(WiecmZ"),
 				scheduler: gocron.NewScheduler(time.Local),
 				logger:    zap.NewExample().Sugar(),
 			},
 			args: args{
-				cronExpression: "* * * * *",
-				task: &automators.Task{
-					URL:     "http:/127.0.0.1/ping",
-					Timeout: time.Minute,
+				config: &automators.JobConfig{
+					CronExpression: "* * * * * *",
+					Task: automators.Task{
+						URL:     "http:/127.0.0.1/ping",
+						Timeout: time.Minute,
+					},
 				},
 			},
 			wantErr: false,
@@ -222,10 +225,12 @@ func TestAutomator_CreateNewJob(t *testing.T) {
 				logger:    zap.NewExample().Sugar(),
 			},
 			args: args{
-				cronExpression: "* * * rv *",
-				task: &automators.Task{
-					URL:     "http:/127.0.0.1/ping",
-					Timeout: time.Minute,
+				config: &automators.JobConfig{
+					CronExpression: "* * * rv *",
+					Task: automators.Task{
+						URL:     "http:/127.0.0.1/ping",
+						Timeout: time.Minute,
+					},
 				},
 			},
 			wantErr: true,
@@ -241,10 +246,12 @@ func TestAutomator_CreateNewJob(t *testing.T) {
 				logger:    zap.NewExample().Sugar(),
 			},
 			args: args{
-				cronExpression: "* * * * *",
-				task: &automators.Task{
-					URL:     "http:/127.0.0.1/ping",
-					Timeout: time.Minute,
+				config: &automators.JobConfig{
+					CronExpression: "* * * * * *",
+					Task: automators.Task{
+						URL:     "http:/127.0.0.1/ping",
+						Timeout: time.Minute,
+					},
 				},
 			},
 			wantErr: true,
@@ -260,7 +267,7 @@ func TestAutomator_CreateNewJob(t *testing.T) {
 
 			a := automators.NewAutomator(tt.fields.cache, tt.fields.secretKey, tt.fields.scheduler, tt.fields.logger)
 
-			got, err := a.CreateNewJob(ctx, tt.args.cronExpression, tt.args.task)
+			got, err := a.CreateNewJob(ctx, *tt.args.config)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Automator.CreateNewJob() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -305,6 +312,7 @@ func TestAutomator_DeleteJob(t *testing.T) {
 					Cache: map[string]string{
 						"a8c14eb0-0fba-4b75-a461-e4d380317ab7": "job-config",
 					},
+					SetName: "jobs_set",
 				},
 				scheduler: gocron.NewScheduler(time.Local),
 				logger:    zap.NewExample().Sugar(),

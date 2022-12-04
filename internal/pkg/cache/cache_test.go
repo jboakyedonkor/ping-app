@@ -130,10 +130,11 @@ func TestCache_GetData(t *testing.T) {
 		key string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
+		name        string
+		args        args
+		want        string
+		wantErr     bool
+		notFoundErr bool
 	}{
 		// TODO: Add test cases.
 		{
@@ -143,6 +144,15 @@ func TestCache_GetData(t *testing.T) {
 			},
 			want:    "test-value",
 			wantErr: false,
+		},
+		{
+			name: "not found error",
+			args: args{
+				key: "test",
+			},
+			want:        "",
+			wantErr:     true,
+			notFoundErr: true,
 		},
 		{
 			name: "retrieval error",
@@ -162,9 +172,9 @@ func TestCache_GetData(t *testing.T) {
 			ctx := context.Background()
 			miniRed := miniredis.RunT(t)
 
-			if tt.wantErr {
+			if tt.wantErr && !tt.notFoundErr {
 				miniRed.SetError(fmt.Sprintf("%s error", tt.name))
-			} else {
+			} else if !tt.notFoundErr {
 				if err := miniRed.Set(tt.args.key, tt.want); err != nil {
 					t.Fatal(err)
 				}
@@ -176,6 +186,10 @@ func TestCache_GetData(t *testing.T) {
 
 			got, err := c.GetData(ctx, tt.args.key)
 			if (err != nil) != tt.wantErr {
+				if _, ok := err.(*cache.NotFoundError); tt.notFoundErr && !ok {
+					t.Errorf("Cache.GetData() error = %v, wantErr %v", err, tt.notFoundErr)
+					return
+				}
 				t.Errorf("Cache.GetData() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
